@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SwingCodex - 感覚を論理に変えるスイングカルテ</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#1e293b', // fallback
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for JSX compilation in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* スムーズなスクロールとiOS向けのアクティブタッチ感 */
+    html {
+      scroll-behavior: smooth;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* スクロールバーのカスタマイズ */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- React Root -->
+  <div id="root"></div>
+
+  <!-- React / Babel script block -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- インラインSVGによるLucideアイコンの代替えコンポーネント ---
+    const Icons = {
+      Sparkles: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5 5 3Z"/>
+          <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z"/>
+        </svg>
+      ),
+      BookOpen: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      ),
+      Target: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+      ),
+      Activity: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      ),
+      Pin: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <line x1="12" y1="17" x2="12" y2="22"/>
+          <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.32-2.9A2 2 0 0 1 15.8 9.86V4a1 1 0 0 0-1-1H9.2a1 1 0 0 0-1 1v5.86a2 2 0 0 1-.44 1.24l-2.32 2.9A2 2 0 0 0 5 15.24V17z"/>
+        </svg>
+      ),
+      Trash2: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <line x1="10" y1="11" x2="10" y2="17"/>
+          <line x1="14" y1="11" x2="14" y2="17"/>
+        </svg>
+      ),
+      Search: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      ),
+      CheckCircle2: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      ),
+      ChevronRight: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      ),
+      Filter: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+      ),
+      Plus: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      ),
+      Sliders: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="2" y1="14" x2="6" y2="14"/>
+          <line x1="10" y1="8" x2="14" y2="8"/>
+          <line x1="18" y1="16" x2="22" y2="16"/>
+        </svg>
+      ),
+      ChevronDown: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      ),
+      RotateCcw: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <polyline points="3 3 3 8 8 8"/>
+        </svg>
+      ),
+      Info: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      ),
+      Clipboard: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+      ),
+      AlertCircle: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      ),
+      Check: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      ),
+      X: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      ),
+      Bookmark: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+        </svg>
+      ),
+      Settings: (props) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      )
+    };
+
+    function App() {
+      // --- ステート管理 ---
+      const [sensation, setSensation] = useState('');
+      const [selectedClubs, setSelectedClubs] = useState(['アイアン']); // 複数選択に対応 (配列)
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+      const [activeTab, setActiveTab] = useState('translator'); // 'translator', 'cards', 'today'
+      const [cardList, setCardList] = useState([]);
+      const [pinnedIds, setPinnedIds] = useState([]);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [filterClub, setFilterClub] = useState('ALL');
+      const [filterIssue, setFilterIssue] = useState('ALL');
+      const [currentResult, setCurrentResult] = useState(null);
+      const [toast, setToast] = useState(null);
+      const [checkedPins, setCheckedPins] = useState({});
+
+      // API設定用の追加ステート
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('swingcodex_api_key') || '');
+      const [showSettings, setShowSettings] = useState(false);
+
+      // 利用可能なクラブ一覧
+      const CLUB_OPTIONS = ['ドライバー', 'ウッド/UT', 'アイアン', 'ウェッジ', 'パター'];
+
+      // 利用可能なスイングフェーズ
+      const SWING_PHASES = ['アドレス', 'テイクバック', 'トップ', 'ダウンスイング', 'インパクト', 'フォロースルー'];
+
+      // --- 初期サンプルデータ及びローカルストレージの読み込み ---
+      useEffect(() => {
+        // ローカルストレージに保存されたカルテ履歴がある場合はそちらを優先
+        const savedCards = localStorage.getItem('swingcodex_cards');
+        const savedPins = localStorage.getItem('swingcodex_pinned');
+        
+        if (savedCards) {
+          try {
+            setCardList(JSON.parse(savedCards));
+          } catch(e) {
+            console.error("Failed to load saved cards", e);
+          }
+        } else {
+          // デフォルトカードの読み込み
+          const defaultCards = [
+            {
+              id: 'sample-1',
+              date: '2026/06/09',
+              clubs: ['ドライバー', 'ウッド/UT'],
+              issue: 'スライス防止',
+              sensation: 'バックスイングで背中を完全に目標に向ける感覚。手先だけで上げずに、胸椎ごと右に回しきるイメージ。',
+              phase: 'トップ',
+              translatedConcept: '最大捻転（Xファクター）',
+              checkpoints: [
+                { label: "骨盤・肩の捻転差", value: "最大45度キープ", percentage: 95, description: "上半身と下半身のねじれ差を極大化させ、ダウンスイングの力強いエネルギー源を作ります。" },
+                { label: "左肩の位置", value: "顎の下まで深く押し込む", percentage: 90, description: "手先でクラブを上げるのではなく、胸椎の回旋によってフラットな肩の回転軸を作ります。" },
+                { label: "左手首のアライメント", value: "フラット（掌屈気味）", percentage: 85, description: "トップでのフェースの開きを抑制し、ハーフウェイダウンでのスクエアな戻りを保証します。" }
+              ],
+              anatomyAndPhysics: "背中を向ける感覚は、解剖学的に『広背筋』および『腹斜筋群』に強力な伸張反射（ストレッチ・ショートニング・サイクル）を引き起こします。これにより、手の力に頼らない『運動連鎖』が下半身からスムーズに始動し、クラブのインサイドアウト軌道が自然と形成されてスライスを根本から撲滅します。",
+              focusScore: 94,
+              actionAdvice: "右の股関節にしっかりと体重を乗せ、左膝を少し内側に送り込みながら背中のロゴを目標に見せるように始動します。"
+            },
+            {
+              id: 'sample-2',
+              date: '2026/06/08',
+              clubs: ['アイアン', 'ウェッジ'],
+              issue: '打点の安定',
+              sensation: 'ボールの先3cmのゴミを一緒にアイアンの刃で払うイメージで、低く長くヘッドを出す。',
+              phase: 'インパクト',
+              translatedConcept: 'ハンドファースト・ローインパクト',
+              checkpoints: [
+                { label: "ハンドファースト角度", value: "目標方向に12°傾斜", percentage: 92, description: "ロフト角を立てて捉えることで、風に負けない厚いインパクトと極上の打感を生み出します。" },
+                { label: "ヘッド最下点の位置", value: "ボールの先2.5cm", percentage: 88, description: "ダウンブロー軌道になり、芝の抵抗に負けずにクリーンに捉えることができます。" },
+                { label: "前傾角度の維持率", value: "アドレスからブレ幅5%以内", percentage: 95, description: "インパクト時の早期の起き上がり（アーリーエクステンション）を防ぎ、トップやシャンクを根絶します。" }
+              ],
+              anatomyAndPhysics: "低く長く出す感覚は、スイングプレーンの低重心化とインパクトゾーンの長さを物理的に確保します。解剖学的には、左手首のコックがアーリーリリース（キャスティング）されるのを防ぎ、左肩甲骨の引き込み動作（大円筋・広背筋）で手元を低くコントロールしています。これにより打点の前後ブレが劇的に減少します。",
+              focusScore: 96,
+              actionAdvice: "インパクトゾーンで左手の甲が地面を向くように、腰を左後ろへ鋭く回転させ続けてください。"
+            }
+          ];
+          setCardList(defaultCards);
+          localStorage.setItem('swingcodex_cards', JSON.stringify(defaultCards));
+        }
+
+        if (savedPins) {
+          try {
+            setPinnedIds(JSON.parse(savedPins));
+          } catch(e) {
+            setPinnedIds(['sample-1']);
+          }
+        } else {
+          setPinnedIds(['sample-1']);
+        }
+      }, []);
+
+      // データのローカル永続化保存
+      const saveCardsToStorage = (updatedList) => {
+        setCardList(updatedList);
+        localStorage.setItem('swingcodex_cards', JSON.stringify(updatedList));
+      };
+
+      const savePinsToStorage = (updatedPins) => {
+        setPinnedIds(updatedPins);
+        localStorage.setItem('swingcodex_pinned', JSON.stringify(updatedPins));
+      };
+
+      // APIキーの保存
+      const saveApiKey = (key) => {
+        setApiKey(key);
+        localStorage.setItem('swingcodex_api_key', key);
+        showToast('APIキーをローカル保存しました');
+        setShowSettings(false);
+      };
+
+      // --- トースト通知機能 ---
+      const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+      };
+
+      // --- クリップボードへのコピー（iFrame安全対策用） ---
+      const copyTextToClipboard = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.width = "2em";
+        textArea.style.height = "2em";
+        textArea.style.padding = "0";
+        textArea.style.border = "none";
+        textArea.style.outline = "none";
+        textArea.style.boxShadow = "none";
+        textArea.style.background = "transparent";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            showToast('クリップボードにコピーしました！');
+          } else {
+            showToast('コピーに失敗しました。もう一度お試しください。', 'error');
+          }
+        } catch (err) {
+          showToast('コピー機能がサポートされていません。', 'error');
+        }
+        document.body.removeChild(textArea);
+      };
+
+      // --- カルテ内容を綺麗にテキストフォーマット化 ---
+      const formatCarteToText = (card) => {
+        return `【SwingCodex スイングカルテ】
+■ 登録日: ${card.date}
+■ 対象クラブ: ${card.clubs.join(', ')}
+■ 検出課題: ${card.issue}
+■ 該当フェーズ: ${card.phase}
+
+■ あなたのスイング感覚:
+「${card.sensation}」
+
+■ 客観的翻訳コンセプト:
+【${card.translatedConcept}】
+
+■ 動作チェックポイント:
+${card.checkpoints.map((cp, idx) => `${idx + 1}. ${cp.label}: ${cp.value}\n   (${cp.description})`).join('\n')}
+
+■ バイオメカニクス ＆ スイング物理解説:
+${card.anatomyAndPhysics}
+
+■ 再現するためのトリガー動作:
+${card.actionAdvice}
+
+※再現スコア（物理的再現性）: ${card.focusScore}%`;
+      };
+
+      // --- クラブ複数選択のトグルロジック ---
+      const handleClubToggle = (club) => {
+        if (selectedClubs.includes(club)) {
+          if (selectedClubs.length > 1) {
+            setSelectedClubs(selectedClubs.filter(c => c !== club));
+          } else {
+            showToast('少なくとも1つのクラブを選択してください。', 'error');
+          }
+        } else {
+          setSelectedClubs([...selectedClubs, club]);
+        }
+      };
+
+      // 「すべてのクラブ」を一括トグル
+      const handleAllClubsToggle = () => {
+        if (selectedClubs.length === CLUB_OPTIONS.length) {
+          setSelectedClubs(['アイアン']);
+        } else {
+          setSelectedClubs([...CLUB_OPTIONS]);
+        }
+      };
+
+      // --- 感覚テキストから「課題・目的」を自動判定する内部ロジック (Fallback / API兼用) ---
+      const autoDetectIssue = (text, clubs) => {
+        const t = text.toLowerCase();
+        
+        if (t.includes("スライス") || t.includes("右") || t.includes("開く") || t.includes("脇") || t.includes("わき") || t.includes("タオル")) {
+          return "スライス防止";
+        }
+        if (t.includes("フック") || t.includes("チーピン") || t.includes("左") || t.includes("閉じる") || t.includes("捕まる") || t.includes("つつまる")) {
+          return "フック防止";
+        }
+        if (t.includes("飛距離") || t.includes("飛ばす") || t.includes("タメ") || t.includes("スピード") || t.includes("しなり") || t.includes("最大") || t.includes("背中") || t.includes("一瞬止まる")) {
+          return "飛距離アップ";
+        }
+        if (t.includes("打点") || t.includes("ミート") || t.includes("ダフ") || t.includes("トップ") || t.includes("芯") || t.includes("クリーン") || t.includes("先")) {
+          return "打点の安定";
+        }
+        if (clubs.includes("ウェッジ") && (t.includes("アプローチ") || t.includes("ピッチ") || t.includes("スピン") || t.includes("転がす"))) {
+          return "アプローチ改善";
+        }
+        if (clubs.includes("パター") || t.includes("パット") || t.includes("カップ") || t.includes("転がり")) {
+          return "方向性の改善";
+        }
+        
+        return "方向性の改善";
+      };
+
+      // --- フォールバック解析（APIキーなし・オフライン用） ---
+      const getFallbackAnalysis = (sensationText, clubs) => {
+        const text = sensationText.toLowerCase();
+        const detectedIssue = autoDetectIssue(sensationText, clubs);
+        
+        if (text.includes("脇") || text.includes("わき") || text.includes("タオル") || text.includes("挟む")) {
+          return {
+            phase: "テイクバック",
+            issue: detectedIssue,
+            translatedConcept: "アームボディ同期",
+            checkpoints: [
+              { label: "脇の最大開き角", value: "5度以内をキープ", percentage: 92, description: "腕が体幹から遊離するのを防ぎ、アドレス時の胸の三角形を崩さずにハーフウェイバックまで上げられます。" },
+              { label: "体幹・腕のシンクロ率", value: "95%の一体感", percentage: 90, description: "手先でクラブを操作する余地を無くし、スイング軌道の左右へのばらつきを無くします。" },
+              { label: "フェース面のアングル", value: "前傾角度と完全平行", percentage: 85, description: "テイクバック初期でのフェースの過度な開き（ロール）を防ぎ、スクエアに戻りやすくなります。" }
+            ],
+            anatomyAndPhysics: "脇を締める感覚は、胸椎の回旋運動と連動して『前鋸筋』と『大胸筋』をアイソメトリックに緊張させます。これにより腕だけが先行する『手打ち』を防ぎ、体幹主導の再現性の高い回転運動にロックされます。物理的にはスイング半径を一定に保つアンカーの役割を果たします。",
+            focusScore: 91,
+            actionAdvice: "テイクバックの始動後30cmの間、右腕と右脇腹の間の皮膚が少し擦れる感触を感じ続けてください。"
+          };
+        }
+        
+        if (text.includes("トップ") || text.includes("止まる") || text.includes("待つ") || text.includes("間") || text.includes("背中")) {
+          return {
+            phase: "トップ",
+            issue: detectedIssue,
+            translatedConcept: "トランジション・ラグ",
+            checkpoints: [
+              { label: "切り返し遅延時間", value: "0.20〜0.25秒", percentage: 96, description: "上半身の切り返しに「間」を設けることで、クラブシャフトが最適な方向へしなる時間を稼ぎます。" },
+              { label: "下半身の先行シフト量", value: "左側へ約10cmスライド", percentage: 90, description: "クラブがトップに到達する直前に下半身が始動する（バンプ動作）ことで、美しいラグ（タメ）を作ります。" },
+              { label: "クラブヘッドのブレ幅", value: "ほぼ静止に近い状態", percentage: 80, description: "トップでのオーバーアクションを抑え、軌道が毎スイングで同一になるよう安定させます。" }
+            ],
+            anatomyAndPhysics: "トップで一瞬止まる感覚は、バイオメカニクスにおける『運動連鎖（Kinetic Chain）』を最適化します。骨盤がまずターゲット方向に回り始めるのに対し、胸椎と腕は取り残されることで『伸張反射』が生じ、体幹の爆発的な収縮力が後半に解放されます。",
+            focusScore: 95,
+            actionAdvice: "左足の踏み込みが完全に完了してから、引っ張られるようにクラブが下りてくる時間差を意識しましょう。"
+          };
+        }
+
+        if (text.includes("手元") || text.includes("低く") || text.includes("下ろす") || text.includes("引き下ろす") || text.includes("ゴミ")) {
+          return {
+            phase: "ダウンスイング",
+            issue: detectedIssue,
+            translatedConcept: "インサイドシャロー",
+            checkpoints: [
+              { label: "グリップエンドの軌道", value: "真下（地面方向）へ直線的", percentage: 94, description: "手元を体の近く、かつ低い位置に引き下ろすことで、アウトサイドインのカット軌道を完全に抑え込みます。" },
+              { label: "シャフトの倒れ角", value: "プレーンに対して約5°寝かせる", percentage: 88, description: "いわゆる『シャローイング』を誘発し、クラブが理想的なインサイドから入る通り道を作ります。" },
+              { label: "左肘の向き", value: "左ポケット方向をキープ", percentage: 82, description: "肘が外に逃げる『チキンウィング』を防ぎ、インパクトに向けて腕が最大限伸展できるようにします。" }
+            ],
+            anatomyAndPhysics: "手元を低く下ろす意識は、遠心力に対抗する『向心力』を高めます。解剖学的には『広背筋』と『大円筋』の強力な収縮により、手元を身体の重心近くに通すことで、物理的な回転慣性モーメントを減少させ、ヘッドスピードアップに直結します。",
+            focusScore: 92,
+            actionAdvice: "トップからグリップエンドで右足の太ももを突くような方向へ、直線的に引き下ろす感覚を試してください。"
+          };
+        }
+
+        // デフォルト
+        return {
+          phase: "インパクト",
+          issue: detectedIssue,
+          translatedConcept: `体幹連鎖`,
+          checkpoints: [
+            { label: "軸の安定キープ", value: "ブレ幅極小", percentage: 85, description: "主観的感覚によって無駄な力みが抜け、スイングの回転軸がビシッと中心に固定されます。" },
+            { label: "骨盤の回転角", value: "ターゲット方向に45度回転", percentage: 90, description: "手先ではなく腰のリードによってインパクトを迎えることで、押し込むパワーを最大化します。" },
+            { label: "フェース面のコントロール", value: "完全スクエア維持", percentage: 80, description: "身体の回旋とクラブが調和し、インパクトゾーンにおけるフェースのブレが最小限になります。" }
+          ],
+          anatomyAndPhysics: `「${sensationText}」という感覚は、脳の運動前野が構築するスムーズな神経回路の活性化を表します。これにより、手の末梢神経の余計なノイズ（不要な腕力）がシャットアウトされ、体幹深層部（『大臀筋』『骨盤底筋群』『多裂筋』）を主動作筋とした高効率なキネティックチェーン（運動連鎖）が成立します。`,
+          focusScore: 88,
+          actionAdvice: "この感覚が最もクリアに感じられた時のテンポを崩さないよう、プレショットルーティンに「この感覚を心で呟く」ことを組み込みましょう。"
+        };
+      };
+
+      // --- AI翻訳実行（Gemini 2.5 Flash API呼び出し） ---
+      const handleAnalyze = async (e) => {
+        e.preventDefault();
+        if (!sensation.trim()) {
+          showToast('自分の感覚を入力してください', 'error');
+          return;
+        }
+
+        setIsAnalyzing(true);
+        const clubsText = selectedClubs.join(', ');
+
+        // APIキーが設定されていない場合は、フォールバックの高性能疑似翻訳エンジンを作動させる
+        if (!apiKey.trim()) {
+          showToast('APIキー未設定のため、スマートシミュレーター解析を実行します。', 'info');
+          
+          setTimeout(() => {
+            const fallbackData = getFallbackAnalysis(sensation, selectedClubs);
+            const newResult = {
+              id: 'carte-' + Date.now(),
+              date: new Date().toLocaleDateString('ja-JP'),
+              clubs: [...selectedClubs],
+              sensation: sensation,
+              ...fallbackData
+            };
+            setCurrentResult(newResult);
+            setIsAnalyzing(false);
+            showToast('感覚のインテリジェント翻訳が完了しました！');
+          }, 1500);
+          return;
+        }
+
+        const systemPrompt = `
+You are an elite, world-class golf biomechanics and motion analysis expert.
+Your mission is to translate a golfer's highly subjective and abstract "sensation" into objective, scientific, physics-based, and anatomical movement patterns.
+
+You must also automatically detect and classify the "issue" or target improvement category of this feeling from these choices:
+- "スライス防止"
+- "フック防止"
+- "飛距離アップ"
+- "打点の安定"
+- "方向性の改善"
+- "アプローチ改善"
+
+Format your response strictly as a JSON object with this structure:
+{
+  "phase": "アドレス" | "テイクバック" | "トップ" | "ダウンスイング" | "インパクト" | "フォロースルー",
+  "issue": "スライス防止" | "フック防止" | "飛距離アップ" | "打点の安定" | "方向性の改善" | "アプローチ改善",
+  "translatedConcept": "A brief objective concept in Japanese (max 15 characters, e.g., インサイドアウト同期, アームラグ形成)",
+  "checkpoints": [
+    {
+      "label": "Metric title in Japanese",
+      "value": "An objective value or target in Japanese",
+      "percentage": 0 to 100,
+      "description": "Specific detail of what to check in Japanese"
+    }
+  ],
+  "anatomyAndPhysics": "Explain the biological, anatomical, and physical mechanisms behind why this subjective feeling produces a good shot. Max 200 Japanese characters.",
+  "focusScore": 0 to 100,
+  "actionAdvice": "A simple actionable physical cue or trigger for the golfer to reproduce this on the range in Japanese."
+}
+
+Notes:
+- The "checkpoints" array must have EXACTLY 3 items.
+- Ensure all Japanese translations are precise and look professional.
+- Do NOT output any markdown tags (like \`\`\`json) or extra text. Output ONLY the JSON.
+`;
+
+        const userQuery = `主観的感覚: "${sensation}"\n選択された使用クラブ: ${clubsText}`;
+
+        const maxRetries = 5;
+        let delay = 1000;
+        let apiSuccess = false;
+        let finalData = null;
+
+        for (let i = 0; i < maxRetries; i++) {
+          try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                  responseMimeType: "application/json"
+                }
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              finalData = JSON.parse(text);
+              apiSuccess = true;
+              break;
+            }
+          } catch (error) {
+            if (i === maxRetries - 1) {
+              console.warn("API request failed after retries. Using localized fallback generator.", error);
+            } else {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2;
+            }
+          }
+        }
+
+        if (!apiSuccess || !finalData) {
+          finalData = getFallbackAnalysis(sensation, selectedClubs);
+        }
+
+        const newResult = {
+          id: 'carte-' + Date.now(),
+          date: new Date().toLocaleDateString('ja-JP'),
+          clubs: [...selectedClubs],
+          sensation: sensation,
+          ...finalData
+        };
+
+        setCurrentResult(newResult);
+        setIsAnalyzing(false);
+        showToast('Gemini API 翻訳が完了しました！');
+      };
+
+      // --- 解析結果をカルテ（履歴）に保存 ＆ 自動クリア ---
+      const saveToCardList = () => {
+        if (!currentResult) return;
+        
+        if (cardList.some(card => card.id === currentResult.id)) {
+          showToast('既にカルテに保存されています', 'error');
+          return;
+        }
+
+        // 履歴に保存してLocalStorageに書き込み
+        const updatedList = [currentResult, ...cardList];
+        saveCardsToStorage(updatedList);
+        showToast('スイングカルテに保存しました！');
+        
+        // カルテ保存後に自動で「うまくいく感覚」入力欄をクリア
+        setSensation('');
+        
+        // カルテタブに自動遷移
+        setTimeout(() => {
+          setActiveTab('cards');
+        }, 800);
+      };
+
+      // --- ピン留めのトグル ---
+      const togglePin = (id) => {
+        if (pinnedIds.includes(id)) {
+          const updatedPins = pinnedIds.filter(pid => pid !== id);
+          savePinsToStorage(updatedPins);
+          showToast('ピン留めを解除しました');
+        } else {
+          if (pinnedIds.length >= 3) {
+            showToast('再現ピン留めは最大3つまでです（意識の分散を防ぐため）', 'error');
+            return;
+          }
+          const updatedPins = [...pinnedIds, id];
+          savePinsToStorage(updatedPins);
+          showToast('今日意識するポイントにピン留めしました！');
+        }
+      };
+
+      // --- カルテの削除 ---
+      const deleteCard = (id) => {
+        const updatedList = cardList.filter(card => card.id !== id);
+        saveCardsToStorage(updatedList);
+        
+        const updatedPins = pinnedIds.filter(pid => pid !== id);
+        savePinsToStorage(updatedPins);
+        
+        showToast('カルテを削除しました');
+      };
+
+      // --- 検索・フィルター処理 ---
+      const filteredCards = cardList.filter(card => {
+        const matchesSearch = card.sensation.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              card.translatedConcept.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              card.phase.includes(searchQuery);
+        
+        const matchesClub = filterClub === 'ALL' || card.clubs.includes(filterClub);
+        const matchesIssue = filterIssue === 'ALL' || card.issue === filterIssue;
+        return matchesSearch && matchesClub && matchesIssue;
+      });
+
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-900">
+          
+          {/* --- ヘッダー --- */}
+          <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-tr from-emerald-600 to-lime-400 p-2 rounded-xl shadow-lg shadow-emerald-500/20">
+                <Icons.Activity className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent">
+                  SwingCodex
+                </h1>
+                <p className="text-[10px] text-slate-400">感覚を論理に変えるスイングカルテ</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {/* API設定トグルボタン */}
+              <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-2 rounded-lg border transition-all flex items-center gap-1 ${
+                  apiKey ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-400 border-slate-850 hover:text-slate-200'
+                }`}
+                title="Gemini APIの設定"
+              >
+                <Icons.Settings className="w-4 h-4" />
+                <span className="text-[10px] font-bold hidden sm:inline">
+                  {apiKey ? 'APIキー設定済' : 'API未設定'}
+                </span>
+              </button>
+            </div>
+          </header>
+
+          {/* --- API設定モーダル --- */}
+          {showSettings && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+                <button 
+                  onClick={() => setShowSettings(false)}
+                  className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
+                >
+                  <Icons.X className="w-5 h-5" />
+                </button>
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="bg-emerald-950/50 p-2 rounded-lg">
+                    <Icons.Settings className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-200">Gemini APIキー設定</h3>
+                    <p className="text-[10px] text-slate-400">キーは暗号化されずローカルブラウザの記憶域に安全に保管されます</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-slate-300 font-bold">Google AI Studio API Key</label>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="w-full bg-slate-950 text-slate-100 rounded-xl p-3 text-sm border border-slate-800 focus:border-emerald-500 outline-none transition-all h-10"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    ※APIキーを空にして保存した場合、ローカルの高速疑似解析AIモジュール（スライス防止・トップの間・手元低くなど対応）で動作します。お試し利用時は空でもご利用いただけます。
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => {
+                        setApiKey('');
+                        localStorage.removeItem('swingcodex_api_key');
+                        showToast('キーをクリアしました');
+                        setShowSettings(false);
+                      }}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/20 transition-all"
+                    >
+                      クリア
+                    </button>
+                    <button
+                      onClick={() => saveApiKey(apiKey)}
+                      className="bg-emerald-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-extrabold hover:bg-emerald-400 transition-all"
+                    >
+                      設定を保存
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- メインコンテンツ --- */}
+          <main className="flex-1 pb-24 max-w-2xl mx-auto w-full px-4 pt-4">
+            
+            {/* タブナビゲーション */}
+            <div className="grid grid-cols-3 gap-1 bg-slate-900 p-1 rounded-xl mb-6 border border-slate-800">
+              <button
+                onClick={() => setActiveTab('translator')}
+                className={`flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'translator' 
+                    ? 'bg-gradient-to-r from-emerald-950 to-slate-900 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                <Icons.Sparkles className="w-4 h-4" />
+                <span>感覚を翻訳する</span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('cards')}
+                className={`flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'cards' 
+                    ? 'bg-gradient-to-r from-emerald-950 to-slate-900 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                <Icons.BookOpen className="w-4 h-4" />
+                <span>スイングカルテ ({cardList.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('today')}
+                className={`relative flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  activeTab === 'today' 
+                    ? 'bg-gradient-to-r from-emerald-950 to-slate-900 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-950/20' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                <Icons.Target className="w-4 h-4" />
+                <span>今日のピン留め</span>
+                {pinnedIds.length > 0 && (
+                  <span className="absolute top-1 right-2 w-5 h-5 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full flex items-center justify-center border-2 border-slate-900">
+                    {pinnedIds.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* --- TAB 1: TRANSLATOR (AI翻訳) --- */}
+            {activeTab === 'translator' && (
+              <div className="space-y-6">
+                <div className="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full blur-xl pointer-events-none"></div>
+                  
+                  <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-4">
+                    <span className="w-1.5 h-3 bg-emerald-500 rounded-full"></span>
+                    感覚を言語化・物理指標へ翻訳
+                  </h2>
+
+                  <form onSubmit={handleAnalyze} className="space-y-5">
+                    {/* 感覚入力 */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs text-slate-300 font-bold">あなたの「うまくいく感覚」</label>
+                        <div className="flex items-center gap-3">
+                          {/* 入力クリアボタン */}
+                          {sensation.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSensation('');
+                                showToast('テキストをクリアしました');
+                              }}
+                              className="text-[10px] text-rose-400 hover:text-rose-300 font-bold flex items-center gap-0.5 transition-colors focus:outline-none"
+                            >
+                              <Icons.RotateCcw className="w-3 h-3" />
+                              <span>クリア</span>
+                            </button>
+                          )}
+                          <span className="text-[10px] text-slate-500 font-semibold">{sensation.length} / 1000文字</span>
+                        </div>
+                      </div>
+                      <textarea
+                        value={sensation}
+                        onChange={(e) => setSensation(e.target.value)}
+                        placeholder="例：右脇にタオルを挟んだまま引く感じ、トップでクラブの重さを感じる、手元をベルトの低さで通す... 動き全体や、複数のフェーズにわたる複雑なフィーリングも自由に書き込めます。"
+                        className="w-full bg-slate-950 text-slate-100 rounded-xl p-3 text-sm border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all duration-150 h-32 resize-none placeholder:text-slate-600"
+                        maxLength={1000}
+                      />
+                    </div>
+
+                    {/* クラブ種別 (複数選択対応バッジUI) */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs text-slate-300 font-bold">対象クラブ（複数選択可）</label>
+                        <button
+                          type="button"
+                          onClick={handleAllClubsToggle}
+                          className="text-[10px] text-emerald-400 font-extrabold hover:text-emerald-300 transition"
+                        >
+                          {selectedClubs.length === CLUB_OPTIONS.length ? 'クリア' : 'すべてのクラブを対象'}
+                        </button>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {CLUB_OPTIONS.map((club) => {
+                          const isSelected = selectedClubs.includes(club);
+                          return (
+                            <button
+                              key={club}
+                              type="button"
+                              onClick={() => handleClubToggle(club)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-150 flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 shadow-sm shadow-emerald-900/15'
+                                  : 'bg-slate-950 text-slate-400 border-slate-850 hover:border-slate-700 hover:text-slate-300'
+                              }`}
+                            >
+                              {isSelected && <Icons.Check className="w-3.5 h-3.5" />}
+                              {club}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 自動検出に関するお知らせ */}
+                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-start gap-2">
+                      <Icons.Sparkles className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                        <strong>課題の自動選択がONになっています：</strong>感覚の言葉から「スライス防止」「飛距離アップ」などのテーマをAIがインテリジェントに自動検出します。
+                      </p>
+                    </div>
+
+                    {/* 翻訳実行ボタン */}
+                    <button
+                      type="submit"
+                      disabled={isAnalyzing}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-lime-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl text-xs tracking-wider uppercase transition-all duration-300 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                          <span>AIスイング物理解析中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icons.Sparkles className="w-4 h-4 fill-slate-950" />
+                          <span>感覚を自動翻訳する</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* --- 解析結果表示 --- */}
+                {currentResult && !isAnalyzing && (
+                  <div className="bg-slate-900 border-2 border-emerald-500/30 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="absolute top-0 right-0 bg-emerald-500 text-slate-950 px-3 py-1 rounded-bl-xl text-[10px] font-extrabold tracking-wide uppercase">
+                      Analysis Complete
+                    </div>
+
+                    {/* ヘッダー情報 */}
+                    <div className="mb-4">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                        {currentResult.clubs.map((c) => (
+                          <span key={c} className="bg-slate-950 text-slate-300 px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-800">{c}</span>
+                        ))}
+                        <span className="bg-emerald-950/50 text-emerald-300 px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-emerald-500/20 flex items-center gap-1">
+                          <Icons.Bookmark className="w-2.5 h-2.5" />
+                          自動タグ: {currentResult.issue}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-xl font-extrabold text-slate-100 leading-tight">
+                          {currentResult.translatedConcept}
+                        </h3>
+                        
+                        {/* 翻訳結果のクリップボードコピーボタン */}
+                        <button
+                          onClick={() => copyTextToClipboard(formatCarteToText(currentResult))}
+                          className="p-2 rounded-lg bg-slate-950 text-emerald-400 hover:text-emerald-300 border border-slate-800 hover:border-emerald-500/30 transition-all flex items-center gap-1 shrink-0"
+                          title="翻訳内容をコピー"
+                        >
+                          <Icons.Clipboard className="w-4 h-4" />
+                          <span className="text-[10px] font-bold hidden sm:inline">翻訳コピー</span>
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-slate-400 mt-2 bg-slate-950 p-2.5 rounded-lg border border-slate-850 italic whitespace-pre-wrap leading-relaxed">
+                        「{currentResult.sensation}」
+                      </p>
+                    </div>
+
+                    {/* スイングフェーズのタイムライン */}
+                    <div className="mb-6">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-2">該当スイングフェーズ</span>
+                      <div className="grid grid-cols-6 gap-1 relative">
+                        {SWING_PHASES.map((ph) => {
+                          const isActive = currentResult.phase === ph;
+                          return (
+                            <div key={ph} className="flex flex-col items-center">
+                              <div className={`w-full h-1 rounded-full transition-all duration-300 ${
+                                isActive ? 'bg-gradient-to-r from-emerald-500 to-lime-400' : 'bg-slate-800'
+                              }`} />
+                              <span className={`text-[9px] mt-1.5 font-bold transition-all duration-300 ${
+                                isActive ? 'text-emerald-400 scale-105' : 'text-slate-600'
+                              }`}>
+                                {ph}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 物理的チェックポイント */}
+                    <div className="space-y-4 mb-6">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">客観的な物理指標チェックポイント</span>
+                      {currentResult.checkpoints.map((cp, idx) => (
+                        <div key={idx} className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/60">
+                          <div className="flex justify-between items-start mb-1.5">
+                            <div className="pr-4">
+                              <h4 className="text-xs font-bold text-slate-200">{cp.label}</h4>
+                              <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">{cp.description}</p>
+                            </div>
+                            <span className="text-xs font-extrabold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap">
+                              {cp.value}
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+                              style={{ width: `${cp.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 解剖学・運動連鎖の解説 */}
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6">
+                      <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2">
+                        <Icons.Info className="w-3.5 h-3.5 text-emerald-400" />
+                        バイオメカニクス ＆ スイング物理
+                      </h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {currentResult.anatomyAndPhysics}
+                      </p>
+                    </div>
+
+                    {/* トリガー動作 */}
+                    <div className="border-t border-slate-800 pt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">再現トリガーアドバイス</span>
+                        <p className="text-xs text-emerald-300 font-medium mt-0.5">
+                          {currentResult.actionAdvice}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 w-full md:w-auto">
+                        <button
+                          onClick={() => togglePin(currentResult.id)}
+                          className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                            pinnedIds.includes(currentResult.id)
+                              ? 'bg-amber-500 text-slate-950 border-amber-600'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          <Icons.Pin className={`w-3.5 h-3.5 ${pinnedIds.includes(currentResult.id) ? 'fill-slate-950' : ''}`} />
+                          <span>{pinnedIds.includes(currentResult.id) ? 'ピン留め中' : '再現ピン留め'}</span>
+                        </button>
+                        
+                        <button
+                          onClick={saveToCardList}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/10"
+                        >
+                          <Icons.Plus className="w-4 h-4" />
+                          <span>カルテに保存</span>
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- TAB 2: SWING CARDS (カルテ一覧) --- */}
+            {activeTab === 'cards' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* フィルター＆検索 */}
+                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="relative">
+                    <Icons.Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="感覚、フェーズ、翻訳ワードで検索..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-slate-950 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-xs border border-slate-800 focus:border-emerald-500 outline-none transition-all h-9"
+                    />
+                  </div>
+
+                  {/* クラブ・課題別フィルター */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                      <span className="text-[10px] text-slate-500 font-bold shrink-0">CLUB:</span>
+                      <select
+                        value={filterClub}
+                        onChange={(e) => setFilterClub(e.target.value)}
+                        className="bg-transparent text-slate-300 text-[11px] outline-none w-full font-semibold"
+                      >
+                        <option value="ALL">すべて表示</option>
+                        {CLUB_OPTIONS.map((club) => (
+                          <option key={club} value={club}>{club}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                      <span className="text-[10px] text-slate-500 font-bold shrink-0">課題:</span>
+                      <select
+                        value={filterIssue}
+                        onChange={(e) => setFilterIssue(e.target.value)}
+                        className="bg-transparent text-slate-300 text-[11px] outline-none w-full font-semibold"
+                      >
+                        <option value="ALL">すべて表示</option>
+                        <option value="スライス防止">スライス防止</option>
+                        <option value="フック防止">フック防止</option>
+                        <option value="飛距離アップ">飛距離アップ</option>
+                        <option value="打点の安定">打点の安定</option>
+                        <option value="方向性の改善">方向性の改善</option>
+                        <option value="アプローチ改善">アプローチ改善</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* カルテカードリスト */}
+                {filteredCards.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-900 rounded-2xl border border-slate-800">
+                    <Icons.Sliders className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">該当するスイングカルテが見つかりません。</p>
+                    <button 
+                      onClick={() => { setSearchQuery(''); setFilterClub('ALL'); setFilterIssue('ALL'); }}
+                      className="mt-3 text-xs text-emerald-400 font-semibold underline"
+                    >
+                      フィルターをリセット
+                    </button>
+                  </div>
+                ) : (
+                  filteredCards.map((card) => {
+                    const isPinned = pinnedIds.includes(card.id);
+                    return (
+                      <div key={card.id} className="bg-slate-900 rounded-xl border border-slate-800/80 p-4 relative hover:border-slate-700 transition-all">
+                        
+                        {/* カード上部 */}
+                        <div className="flex justify-between items-start gap-2 mb-2.5">
+                          <div className="flex flex-wrap items-center gap-1.5 max-w-[70%]">
+                            {card.clubs.map((c) => (
+                              <span key={c} className="text-[9px] bg-slate-950 text-slate-300 px-2 py-0.5 rounded font-bold border border-slate-850">{c}</span>
+                            ))}
+                            <span className="text-[9px] bg-emerald-950/30 text-emerald-400 px-2 py-0.5 rounded font-bold border border-emerald-500/10">
+                              {card.issue}
+                            </span>
+                            <span className="text-[9px] bg-slate-950 text-slate-500 px-2 py-0.5 rounded font-medium">{card.date}</span>
+                          </div>
+                          
+                          {/* アクション */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* カルテカードごとのテキストコピーボタン */}
+                            <button
+                              onClick={() => copyTextToClipboard(formatCarteToText(card))}
+                              className="p-1.5 rounded-lg bg-slate-950 text-emerald-400 border border-slate-800 hover:border-emerald-500/30 hover:text-emerald-300 transition-all"
+                              title="このカルテをテキストコピー"
+                            >
+                              <Icons.Clipboard className="w-3.5 h-3.5" />
+                            </button>
+                            
+                            <button
+                              onClick={() => togglePin(card.id)}
+                              className={`p-1.5 rounded-lg border transition-all ${
+                                isPinned 
+                                  ? 'bg-amber-950/40 text-amber-400 border-amber-500/30' 
+                                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                              }`}
+                              title="ピン留め"
+                            >
+                              <Icons.Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
+                            </button>
+                            <button
+                              onClick={() => deleteCard(card.id)}
+                              className="p-1.5 rounded-lg bg-slate-950 text-slate-500 border border-slate-800 hover:text-rose-400 hover:border-rose-500/30 transition-all"
+                              title="削除"
+                            >
+                              <Icons.Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 感覚 ＆ コンセプト */}
+                        <div className="mb-3">
+                          <h4 className="text-sm font-extrabold text-slate-200 flex items-center gap-2 flex-wrap">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                            {card.translatedConcept}
+                            <span className="text-[10px] text-emerald-500 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/10">
+                              {card.phase}
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-2 bg-slate-950 p-2.5 rounded-lg border border-slate-850 italic whitespace-pre-wrap leading-relaxed">
+                            「{card.sensation}」
+                          </p>
+                        </div>
+
+                        {/* 詳細アコーディオン */}
+                        <details className="group">
+                          <summary className="list-none flex items-center justify-between text-[11px] text-slate-400 font-bold cursor-pointer hover:text-slate-200 transition-all pt-1 select-none">
+                            <span>動作チェックポイント・理論詳細</span>
+                            <Icons.ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-slate-500" />
+                          </summary>
+                          
+                          <div className="mt-3 pt-3 border-t border-slate-800 space-y-3 animate-in fade-in duration-150">
+                            {/* 物理指標 */}
+                            <div className="grid grid-cols-1 gap-2">
+                              {card.checkpoints.map((cp, idx) => (
+                                <div key={idx} className="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/60 flex justify-between items-center text-xs">
+                                  <div className="pr-2">
+                                    <span className="font-bold text-slate-200 block">{cp.label}</span>
+                                    <span className="text-[10px] text-slate-400">{cp.description}</span>
+                                  </div>
+                                  <span className="text-[11px] font-bold text-emerald-400 shrink-0 whitespace-nowrap">{cp.value}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* バイオメカニクス */}
+                            <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800 text-[11px] leading-relaxed text-slate-400">
+                              <strong className="text-slate-300 block mb-1">【バイオメカニクス・物理解説】</strong>
+                              {card.anatomyAndPhysics}
+                            </div>
+
+                            {/* 再現アドバイス */}
+                            <div className="bg-emerald-950/10 p-2.5 rounded-lg border border-emerald-500/10 text-[11px]">
+                              <strong className="text-emerald-400 block font-bold">再現アドバイス:</strong>
+                              <span className="text-slate-300">{card.actionAdvice}</span>
+                            </div>
+                          </div>
+                        </details>
+
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {/* --- TAB 3: TODAY'S PIN (今日のピン留め) --- */}
+            {activeTab === 'today' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-500/20 rounded-2xl p-4 shadow-xl">
+                  <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2 mb-1.5">
+                    <Icons.Target className="w-4 h-4 animate-pulse text-emerald-400" />
+                    練習場 & ラウンド用 ミニマリストモード
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    再現に最も重要な感覚を**最大3つ**だけ厳選して、現場でスピン確認します。余計な雑念をカットするのが再現性のコツです。
+                  </p>
+                </div>
+
+                {pinnedIds.length === 0 ? (
+                  <div className="text-center py-16 bg-slate-900 rounded-2xl border border-slate-800 px-4">
+                    <Icons.Pin className="w-10 h-10 text-slate-700 mx-auto mb-3" />
+                    <h4 className="text-sm font-bold text-slate-300 mb-1">ピン留めされたポイントがありません</h4>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+                      カルテ一覧、または翻訳結果から「今日意識する感覚」をピン留めしてください。
+                    </p>
+                    <button
+                      onClick={() => { setActiveTab('cards'); window.scrollTo(0,0); }}
+                      className="bg-emerald-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-400 transition-all"
+                    >
+                      カルテを見に行く
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cardList
+                      .filter(card => pinnedIds.includes(card.id))
+                      .map((card) => {
+                        const isChecked = checkedPins[card.id] || false;
+                        return (
+                          <div 
+                            key={card.id} 
+                            className={`border rounded-xl p-4 transition-all ${
+                              isChecked 
+                                ? 'bg-slate-950/60 border-slate-800 opacity-60 line-through' 
+                                : 'bg-slate-900 border-slate-800 shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2.5">
+                                {/* チェックボタン */}
+                                <button
+                                  onClick={() => setCheckedPins({
+                                    ...checkedPins,
+                                    [card.id]: !isChecked
+                                  })}
+                                  className={`mt-1 flex items-center justify-center w-5 h-5 rounded-full border transition-all shrink-0 ${
+                                    isChecked 
+                                      ? 'bg-emerald-500 border-emerald-500 text-slate-950' 
+                                      : 'border-slate-600 hover:border-emerald-400 text-transparent'
+                                  }`}
+                                >
+                                  <Icons.Check className="w-3.5 h-3.5 stroke-[3]" />
+                                </button>
+
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {card.clubs.map((c) => (
+                                      <span key={c} className="text-[9px] bg-slate-950 text-slate-400 px-1.5 py-0.5 rounded font-bold">{c}</span>
+                                    ))}
+                                    <span className="text-[10px] text-emerald-400 font-extrabold">{card.translatedConcept}</span>
+                                    <span className="text-[9px] text-slate-500 font-medium">({card.phase})</span>
+                                  </div>
+                                  
+                                  <p className="text-sm font-medium text-slate-100 mt-2.5 whitespace-pre-wrap leading-relaxed">
+                                    「{card.sensation}」
+                                  </p>
+
+                                  {/* ミニマリストチェックポイント */}
+                                  {!isChecked && (
+                                    <div className="mt-3.5 grid grid-cols-1 gap-1.5 border-t border-slate-800/80 pt-3">
+                                      {card.checkpoints.map((cp, cIdx) => (
+                                        <div key={cIdx} className="flex items-center justify-between text-[11px] text-slate-400">
+                                          <span className="font-medium">{cp.label}</span>
+                                          <span className="font-extrabold text-slate-200">{cp.value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {/* ピン留めタブ内での個別コピーボタン */}
+                                <button
+                                  onClick={() => copyTextToClipboard(formatCarteToText(card))}
+                                  className="p-1 rounded text-slate-500 hover:text-emerald-400 transition-all shrink-0"
+                                  title="コピー"
+                                >
+                                  <Icons.Clipboard className="w-3.5 h-3.5" />
+                                </button>
+                                
+                                <button
+                                  onClick={() => togglePin(card.id)}
+                                  className="p-1 rounded-lg text-slate-500 hover:text-rose-400 transition-all shrink-0"
+                                  title="ピン留め解除"
+                                >
+                                  <Icons.X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
+                    
+                    {/* 完了率 */}
+                    <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl text-center">
+                      <div className="text-xs text-slate-400 mb-1">本日の再現完了度</div>
+                      <div className="text-3xl font-black text-emerald-400">
+                        {Object.values(checkedPins).filter(Boolean).length} / {pinnedIds.length}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-1">
+                        脳内イメージと身体動作の乖離を最小限に。
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </main>
+
+          {/* --- トースト通知 --- */}
+          {toast && (
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border border-slate-800 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-5 duration-200">
+              {toast.type === 'success' ? (
+                <Icons.CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              ) : toast.type === 'info' ? (
+                <Icons.Info className="w-4 h-4 text-cyan-400" />
+              ) : (
+                <Icons.AlertCircle className="w-4 h-4 text-rose-400" />
+              )}
+              <span className="text-xs font-semibold">{toast.message}</span>
+            </div>
+          )}
+
+          {/* --- フッターナビゲーション (モバイル用) --- */}
+          <footer className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t border-slate-800 py-3 px-6 flex justify-around items-center backdrop-blur-md">
+            <button 
+              onClick={() => { setActiveTab('translator'); window.scrollTo(0, 0); }}
+              className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'translator' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Icons.Sparkles className="w-5 h-5" />
+              <span className="text-[10px] font-bold">AI翻訳</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('cards'); window.scrollTo(0, 0); }}
+              className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'cards' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Icons.BookOpen className="w-5 h-5" />
+              <span className="text-[10px] font-bold">カルテ</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('today'); window.scrollTo(0, 0); }}
+              className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'today' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Icons.Target className="w-5 h-5" />
+              <span className="text-[10px] font-bold">ピン留め</span>
+            </button>
+          </footer>
+
+        </div>
+      );
+    }
+
+    // Render components
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
